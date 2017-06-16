@@ -7,6 +7,10 @@ NUGET
       Fable.Core (>= 1.0.0-narumi-915) - restriction: >= netstandard16
       FSharp.Core (>= 4.1.17) - restriction: >= netstandard16
       NETStandard.Library (>= 1.6.1) - restriction: >= netstandard16
+    Fable.React (1.0.0-narumi-902)
+      Fable.Core (>= 1.0.0-narumi-912) - restriction: >= netstandard16
+      FSharp.Core (>= 4.1.17) - restriction: >= netstandard16
+      NETStandard.Library (>= 1.6.1) - restriction: >= netstandard16
     FSharp.Core (4.2.1)
       System.Collections (>= 4.0.11) - restriction: >= netstandard16
       System.Console (>= 4.0) - restriction: >= netstandard16
