@@ -5,6 +5,10 @@ function resolve(filePath) {
   return path.join(__dirname, filePath)
 }
 
+var samples = {
+    "react-veh-search": resolve("./ReactVehSearch/ReactVehSearch.fsproj"),
+}
+
 var babelOptions = {
   presets: [["es2015", { "modules": false }]],
   plugins: ["transform-runtime"]
@@ -15,18 +19,29 @@ console.log("Bundling for " + (isProduction ? "production" : "development") + ".
 
 module.exports = {
   devtool: "source-map",
-  entry: resolve('./Fable.fsproj'),
+  entry: samples,
   output: {
-    filename: 'bundle.js',
-    path: resolve('./public'),
+    filename: '[name].js',
+    path: resolve('./build'),
+    publicPath: '/build'
   },
   resolve: {
     modules: [
       "node_modules", resolve("./node_modules/")
     ]
   },
+  externals: {
+    "react": "React",
+    "react-dom": "ReactDOM",
+    "PIXI": "PIXI",
+    "three": "THREE",
+    "redux": "Redux",
+    "queue": "queue",
+    "topojson": "topojson",
+    "d3": "d3"
+  },
   devServer: {
-    contentBase: resolve('./public'),
+    contentBase: resolve('.'),
     port: 8080
   },
   module: {
