@@ -59,7 +59,7 @@ type SearchItem(props) =
     member this.render () =
         R.a [
             ClassName "list-group-item"
-            Data (this.props.id |> string) ] [R.str this.props.label]
+            !!("data-id", (this.props.id |> string)) ] [R.str this.props.label]
 
 
 // Vehicle Search view app
@@ -83,16 +83,6 @@ type VehicleSearchApp(props) =
         this.setState({ this.state with currentStep = 0 })
 
     member this.render () =
-        // let search = this.props.model.search
-        // let searchedItems =
-        //     [search]
-        //     |> Seq.map(fun s ->
-        //         R.com<SearchItem,_,_>
-        //             { key = s.id
-        //             ; step = s.currentStep
-        //             ; onSelect = fun _ -> this.cancel()
-        //             ; onCancel = fun _ -> this.cancel() } [])
-        //     |> Seq.toList
         let brands = this.state.brands
         let brandItems =
             brands
