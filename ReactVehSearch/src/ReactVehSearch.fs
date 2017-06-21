@@ -24,30 +24,46 @@ module Util =
         Browser.localStorage.setItem(key, JS.JSON.stringify data)
 
 // Model
-type Brand = { Id: int; Label: string }
-type Make = { id: int; brandId: int; label: string }
-
 type SearchStepItem = { id: int; label: string }
-type Search = { id: Guid; searchSteps: SearchStepItem list; currentStep: int }
+type SearchStep =
+| Make of SearchStepItem
+| Model of SearchStepItem
+| Fuel of SearchStepItem
+| Transmission of SearchStepItem
+| Body of SearchStepItem
+| FiscalPower of SearchStepItem
+
+let searchStepDeconstruct searchStep =
+    match searchStep with
+    | Make i | Model i | Fuel i | Transmission i | Body i | FiscalPower i -> (i.id |> string), i.label
+    | _ -> failwith "current search step not found"
+
+type Search = { id: Guid; searchSteps: SearchStepItem list; showResults: bool }
 
 type SearchModel(key) =
     member val key = key
-    member val search: Search = defaultArg (Util.load key) {id = System.Guid.NewGuid(); searchSteps = []; currentStep = 0} with get, set
+    member val search: Search = defaultArg (Util.load key) {id = System.Guid.NewGuid(); searchSteps = []; showResults = false } with get, set
     member val onChanges: (unit->unit)[] = [||] with get, set
 
     member this.subscribe(onChange) =
         this.onChanges <- [|onChange|]
+
+    member this.inform() =
+        Util.save this.key this.search
+        this.onChanges |> Seq.iter (fun cb -> cb())
+
+    member this.select(selectedItem) =
+        Browser.console.log(selectedItem)
+        this.inform()
 
 
 module R = Fable.Helpers.React
 open R.Props
 
 type [<Pojo>] SearchItemProps =
-    { id: int
-    ; label: string
-    ; step: int
-    ; onSelect: string->unit
-    ; onCancel: React.SyntheticEvent->unit }
+    { searchStep: SearchStep
+    ; step: int 
+    ; onSelect: React.SyntheticEvent->unit }
 
 type [<Pojo>] SearchItemState =
     { currentStep: int }
@@ -57,9 +73,11 @@ type SearchItem(props) =
     do base.setInitState({ currentStep = props.step })
 
     member this.render () =
+        let id, label = searchStepDeconstruct this.props.searchStep
         R.a [
             ClassName "list-group-item"
-            !!("data-id", (this.props.id |> string)) ] [R.str this.props.label]
+            !!("data-id", id)
+            OnClick (fun e -> this.props.onSelect(upcast e)) ] [R.str label]
 
 
 // Vehicle Search view app
@@ -69,32 +87,40 @@ type [<Pojo>] VehicleSearchAppProps =
 type [<Pojo>] VehicleSearchAppState =
     { currentStep: int
     ; searching: Guid option
-    ; brands: Brand list }
+    ; searchSteps: SearchStep list }
 
 type VehicleSearchApp(props) =
     inherit React.Component<VehicleSearchAppProps, VehicleSearchAppState>(props)
-    do base.setInitState({ currentStep = 0; searching = None; brands = [] })
+    do base.setInitState({ currentStep = 0; searching = System.Guid.NewGuid() |> Some; searchSteps = [] })
 
     member this.componentDidMount () =
-        let brands = [{ Id = 1; Label = "Mercedes"}; { Id = 2; Label = "BMW" }]
-        this.setState({this.state with brands = brands})
+        // this could be an ajax call (this is called only once)
+        let searchSteps = [Make ({ id = 1; label = "Mercedes"}); Make({ id = 2; label = "BMW" })]
+        this.setState({this.state with searchSteps = searchSteps})
+
+    member this.select (searchStep) =
+        this.props.model.select(searchStep)
         
     member this.cancel () =
+        Browser.console.log("cancelled")
         this.setState({ this.state with currentStep = 0 })
 
     member this.render () =
-        let brands = this.state.brands
+        let searchSteps = this.state.searchSteps
         let brandItems =
-            brands
-            |> Seq.map(fun s ->
+            searchSteps
+            |> Seq.map(fun searchStep ->
                 R.com<SearchItem,_,_>
-                    { id = s.Id
-                    ; label = s.Label
-                    ; step = 0
-                    ; onSelect = fun _ -> this.cancel()
-                    ; onCancel = fun _ -> this.cancel() } [])
+                    { searchStep = searchStep
+                    ; step = 0 
+                    ; onSelect = fun _ -> this.select(searchStep)} [])
             |> Seq.toList
-        R.div [ClassName "list-group"] brandItems |> Some
+        R.div [ClassName "row"] [
+            R.div [ClassName "col-md-6 col-md-offset-3"] [
+                R.h1 [] [R.str "Vehicle Search"]
+                R.div [ClassName "list-group"] brandItems 
+            ]
+        ] |> Some
 
 // Firing up the app
 let model = SearchModel("react-veh-search")
