@@ -2,7 +2,7 @@
   "private": true,
   "scripts": {
     "build": "webpack -p",
-    "start": "webpack-dev-server --inline",
+    "start": "webpack-dev-server",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
