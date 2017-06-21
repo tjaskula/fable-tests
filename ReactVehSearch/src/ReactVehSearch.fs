@@ -49,6 +49,7 @@ type SearchModel(key) =
 
     member this.select(selectedItem) =
         Browser.console.log(selectedItem)
+        this.search <- { this.search with selectedChoices =  selectedItem :: this.search.selectedChoices }
         this.inform()
 
 
@@ -95,6 +96,7 @@ type VehicleSearchApp(props) =
         this.props.model.select(searchStep)
 
     member this.render () =
+        Browser.console.log("In Render of App")
         let searchChoices = this.state.searchChoices
         let brandItems =
             searchChoices
