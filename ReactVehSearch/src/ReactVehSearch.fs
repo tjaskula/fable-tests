@@ -134,21 +134,7 @@ type VehicleSearchApp(props) =
 
     member this.render () =
         Browser.console.log("In Render of App")
-        let searchChoices = this.state.searchChoices
-        let brandItems =
-            searchChoices
-            |> Seq.map(fun choice ->
-                R.com<SearchItem,_,_>
-                    { selectionItem = choice
-                    ; onSelect = fun _ -> this.select(choice)} [])
-            |> Seq.toList
-        R.div [ClassName "row"] [
-            R.div [ClassName "col-md-6 col-md-offset-3"] [
-                R.h1 [] [R.str "Vehicle Search"]
-                R.h2 [] [R.str "Select Brand"]
-                R.div [ClassName "list-group"] brandItems 
-            ]
-        ] |> Some
+        R.com<SearchItemList,_,_> { model = this.props.model } []
 
 // Firing up the app
 let model = SearchModel("react-veh-search")
