@@ -67,9 +67,6 @@ type SearchItem(props) =
     inherit React.Component<SearchItemProps, SearchItemState>(props)
     do base.setInitState({ isSelected = false })
 
-    member this.componentDidMount () =
-        Browser.console.log("In componentDidMount of SearchItem")
-
     member this.render () =
         Browser.console.log("In Render of SearchItem")
         R.a [
@@ -77,36 +74,28 @@ type SearchItem(props) =
             !!("data-id", this.props.selectionItem.id |> string)
             OnClick (fun e -> this.props.onSelect(upcast e)) ] [R.str this.props.selectionItem.label]
 
+// component
+
 type [<Pojo>] SearchItemListProps =
-    { model: SearchModel }
+    { searchChoices: VehicleItem list 
+    ; select: VehicleItem->unit }
 
 type [<Pojo>] SearchItemListState =
-    { currentStep: SearchStep
-    ; searching: Guid option
-    ; searchChoices: VehicleItem list }
+    { isSelected: bool }
 
 type SearchItemList(props) =
     inherit React.Component<SearchItemListProps, SearchItemListState>(props)
-    do base.setInitState({ currentStep = Make; searching = System.Guid.NewGuid() |> Some; searchChoices = [] })
-
-    member this.componentDidMount () =
-        Browser.console.log("In componentDidMount of SearchItemList")
-        // this could be an ajax call (this is called only once)
-        let searchChoices = [{ id = 1; label = "Mercedes"}; { id = 2; label = "BMW" }]
-        this.setState({this.state with searchChoices = searchChoices})
-
-    member this.select (searchStep) =
-        this.props.model.select(searchStep)
+    do base.setInitState({ isSelected = false })
 
     member this.render () =
         Browser.console.log("In Render of SearchItemList")
-        let searchChoices = this.state.searchChoices
+        let searchChoices = this.props.searchChoices
         let brandItems =
             searchChoices
             |> Seq.map(fun choice ->
                 R.com<SearchItem,_,_>
                     { selectionItem = choice
-                    ; onSelect = fun _ -> this.select(choice)} [])
+                    ; onSelect = fun _ -> this.props.select(choice) } [])
             |> Seq.toList
         R.div [ClassName "row"] [
             R.div [ClassName "col-md-6 col-md-offset-3"] [
@@ -116,25 +105,52 @@ type SearchItemList(props) =
             ]
         ] |> Some
 
+// component
+type [<Pojo>] SearchItemListContainerProps =
+    { searchStep: SearchStep
+    ; selectedId: int option 
+    ; select: VehicleItem->unit }
+
+type [<Pojo>] SearchItemListContainerState =
+    { searching: Guid option
+    ; searchChoices: VehicleItem list }
+
+type SearchItemListContainer(props) =
+    inherit React.Component<SearchItemListContainerProps, SearchItemListContainerState>(props)
+    do base.setInitState({ searching = System.Guid.NewGuid() |> Some; searchChoices = [] })
+
+    member this.componentDidMount () =
+        Browser.console.log("In componentDidMount of SearchItemListContainer")
+        // this could be an ajax call (this is called only once)
+        let searchChoices = [{ id = 1; label = "Mercedes"}; { id = 2; label = "BMW" }]
+        this.setState({this.state with searchChoices = searchChoices})
+
+    member this.render () =
+        Browser.console.log("In Render of SearchItemListContainer")
+        R.com<SearchItemList,_,_> { searchChoices = this.state.searchChoices; select = this.props.select } []
+
 // Vehicle Search view app
 type [<Pojo>] VehicleSearchAppProps =
     { model: SearchModel }
 
 type [<Pojo>] VehicleSearchAppState =
     { currentStep: SearchStep
-    ; searching: Guid option
-    ; searchChoices: VehicleItem list }
+    ; selectedId: int option
+    ; searching: Guid option }
 
 type VehicleSearchApp(props) =
     inherit React.Component<VehicleSearchAppProps, VehicleSearchAppState>(props)
-    do base.setInitState({ currentStep = Make; searching = System.Guid.NewGuid() |> Some; searchChoices = [] })
+    do base.setInitState({ currentStep = Make; selectedId = None; searching = System.Guid.NewGuid() |> Some })
 
     member this.select (searchStep) =
         this.props.model.select(searchStep)
 
     member this.render () =
         Browser.console.log("In Render of App")
-        R.com<SearchItemList,_,_> { model = this.props.model } []
+        R.com<SearchItemListContainer,_,_> 
+            { selectedId = this.state.selectedId
+            ; searchStep = this.state.currentStep 
+            ; select = this.select } []
 
 // Firing up the app
 let model = SearchModel("react-veh-search")
