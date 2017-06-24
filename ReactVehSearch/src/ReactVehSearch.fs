@@ -78,7 +78,7 @@ type SearchItem(props) =
 
 type [<Pojo>] SearchItemListProps =
     { searchChoices: VehicleItem list 
-    ; select: VehicleItem->unit }
+    ; onSelect: VehicleItem->unit }
 
 type [<Pojo>] SearchItemListState =
     { isSelected: bool }
@@ -95,7 +95,7 @@ type SearchItemList(props) =
             |> Seq.map(fun choice ->
                 R.com<SearchItem,_,_>
                     { selectionItem = choice
-                    ; onSelect = fun _ -> this.props.select(choice) } [])
+                    ; onSelect = fun _ -> this.props.onSelect(choice) } [])
             |> Seq.toList
         R.div [ClassName "row"] [
             R.div [ClassName "col-md-6 col-md-offset-3"] [
@@ -109,7 +109,7 @@ type SearchItemList(props) =
 type [<Pojo>] SearchItemListContainerProps =
     { searchStep: SearchStep
     ; selectedId: int option 
-    ; select: VehicleItem->unit }
+    ; onSelect: VehicleItem->unit }
 
 type [<Pojo>] SearchItemListContainerState =
     { searching: Guid option
@@ -127,7 +127,7 @@ type SearchItemListContainer(props) =
 
     member this.render () =
         Browser.console.log("In Render of SearchItemListContainer")
-        R.com<SearchItemList,_,_> { searchChoices = this.state.searchChoices; select = this.props.select } []
+        R.com<SearchItemList,_,_> { searchChoices = this.state.searchChoices; onSelect = this.props.onSelect } []
 
 // Vehicle Search view app
 type [<Pojo>] VehicleSearchAppProps =
@@ -150,7 +150,7 @@ type VehicleSearchApp(props) =
         R.com<SearchItemListContainer,_,_> 
             { selectedId = this.state.selectedId
             ; searchStep = this.state.currentStep 
-            ; select = this.select } []
+            ; onSelect = this.select } []
 
 // Firing up the app
 let model = SearchModel("react-veh-search")
