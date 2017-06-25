@@ -54,6 +54,10 @@ let datas = [ { id = 1; label = "Renault"; parentId = 0; category = "Make" }
             ; { id = 26; label = "7"; parentId = 24; category = "FiscalPower" }
             ]
 
+type Table = { col1: string; col2: string; col3: string; col4: string }
+let results = [ { col1 = "14"; col2 = "Passat Confort Line"; col3 = "VW0003423"; col4 = "Volkswagen Passat SW"}
+              ; { col1 = "14"; col2 = "Passat Carat"; col3 = "VW110023"; col4 = "Volkswagen Passat SW"}]
+
 // Model
 type VehicleItem = { id: int; label: string }
 
@@ -109,6 +113,21 @@ type SearchModel(key) =
 module R = Fable.Helpers.React
 open R.Props
 
+// result component
+type [<Pojo>] SearchResultProps =
+    { selectedId: int
+    }
+
+let SearchResult(props: SearchResultProps) =
+    R.table [ClassName "table table-hover"] [
+        R.tr [] [
+            R.td [] [R.str "test"]
+            R.td [] [R.str "test"]
+            R.td [] [R.str "test"]
+            R.td [] [R.str "test"]
+        ]
+    ]
+
 type [<Pojo>] SearchItemProps =
     { selectionItem: VehicleItem
     ; onSelect: React.SyntheticEvent->unit }
@@ -130,7 +149,7 @@ type SearchItem(props) =
 // component
 
 type [<Pojo>] SearchItemListProps =
-    { searchChoices: VehicleItem list 
+    { searchChoices: VehicleItem list
     ; onSelect: VehicleItem->unit }
 
 type [<Pojo>] SearchItemListState =
@@ -150,17 +169,7 @@ type SearchItemList(props) =
                     { selectionItem = choice
                     ; onSelect = fun _ -> this.props.onSelect(choice) } [])
             |> Seq.toList
-        R.div [ClassName "row"] [
-            R.div [ClassName "col-md-6 col-md-offset-3"] [
-                R.h1 [] [R.str "Vehicle Search"]
-                R.h4 [] [R.str "Select Brand"]
-                R.div [ClassName "row"] [
-                    R.div [ClassName "col-md-4"] [
-                        R.div [ClassName "list-group"] brandItems
-                    ]
-                ]
-            ]
-        ] |> Some
+        R.div [ClassName "list-group"] brandItems |> Some
 
 // component
 type [<Pojo>] SearchItemListContainerProps =
@@ -211,10 +220,27 @@ type VehicleSearchApp(props) =
 
     member this.render () =
         //Browser.console.log("In Render of App")
-        R.com<SearchItemListContainer,_,_> 
-            { selectedId = this.state.selectedId
-            ; searchStep = this.state.currentStep 
-            ; onSelect = this.select } []
+        let reactComponent =
+            match this.state.currentStep with
+            | Result -> 
+                R.fn SearchResult
+                    { selectedId = 1 } []
+            | _ -> 
+                R.com<SearchItemListContainer,_,_> 
+                    { selectedId = this.state.selectedId
+                    ; searchStep = this.state.currentStep 
+                    ; onSelect = this.select } []
+        R.div [ClassName "row"] [
+            R.div [ClassName "col-md-6 col-md-offset-3"] [
+                R.h1 [] [R.str "Vehicle Search"]
+                R.h4 [] [R.str "Select Brand"]
+                R.div [ClassName "row"] [
+                    R.div [ClassName "col-md-4"] [
+                        reactComponent
+                    ]
+                ]
+            ]
+        ]
 
 // Firing up the app
 let model = SearchModel("react-veh-search")
