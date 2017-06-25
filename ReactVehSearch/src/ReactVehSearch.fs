@@ -115,17 +115,28 @@ open R.Props
 
 // result component
 type [<Pojo>] SearchResultProps =
-    { selectedId: int
-    }
+    { resultList: Table list }
 
 let SearchResult(props: SearchResultProps) =
+    let rows = 
+        props.resultList
+            |> List.map (fun row -> 
+                R.tr [] [
+                    R.td [] [R.str row.col1]
+                    R.td [] [R.str row.col2]
+                    R.td [] [R.str row.col3]
+                    R.td [] [R.str row.col4]
+                ])
     R.table [ClassName "table table-hover"] [
-        R.tr [] [
-            R.td [] [R.str "test"]
-            R.td [] [R.str "test"]
-            R.td [] [R.str "test"]
-            R.td [] [R.str "test"]
+        R.thead [] [
+            R.tr [] [
+                R.th [] [R.str "Fiscal Power"]
+                R.th [] [R.str "Model Name"]
+                R.th [] [R.str "Type"]
+                R.th [] [R.str "Description"]
+            ]
         ]
+        R.tbody [] rows
     ]
 
 type [<Pojo>] SearchItemProps =
@@ -178,11 +189,12 @@ type [<Pojo>] SearchItemListContainerProps =
     ; onSelect: VehicleItem->unit }
 
 type [<Pojo>] SearchItemListContainerState =
-    { searchChoices: VehicleItem list }
+    { searchChoices: VehicleItem list
+    ; resultList: Table list }
 
 type SearchItemListContainer(props) =
     inherit React.Component<SearchItemListContainerProps, SearchItemListContainerState>(props)
-    do base.setInitState({ searchChoices = [] })
+    do base.setInitState({ searchChoices = []; resultList = [] })
 
     member this.componentDidMount () =
         //Browser.console.log("In componentDidMount of SearchItemListContainer")
@@ -192,14 +204,21 @@ type SearchItemListContainer(props) =
 
     member this.componentWillReceiveProps(nextProps) =
         //Browser.console.log("In componentWillReceiveProps of SearchItemListContainer")
-        Browser.console.log(JS.JSON.stringify nextProps)
+        //Browser.console.log(JS.JSON.stringify nextProps)
         // this could be an ajax call (this is called only once)
-        let searchChoices = getData nextProps.searchStep nextProps.selectedId
-        this.setState({this.state with searchChoices = searchChoices})
+        match nextProps.searchStep with
+        | Result -> 
+            this.setState({this.state with resultList = results})
+        | _ -> 
+            let searchChoices = getData nextProps.searchStep nextProps.selectedId
+            this.setState({this.state with searchChoices = searchChoices})
 
     member this.render () =
         //Browser.console.log("In Render of SearchItemListContainer")
-        R.com<SearchItemList,_,_> { searchChoices = this.state.searchChoices; onSelect = this.props.onSelect } []
+        match this.props.searchStep with
+        | Result -> 
+            R.fn SearchResult { resultList = this.state.resultList } []
+        | _ -> R.com<SearchItemList,_,_> { searchChoices = this.state.searchChoices; onSelect = this.props.onSelect } []
 
 // Vehicle Search view app
 type [<Pojo>] VehicleSearchAppProps =
@@ -220,23 +239,16 @@ type VehicleSearchApp(props) =
 
     member this.render () =
         //Browser.console.log("In Render of App")
-        let reactComponent =
-            match this.state.currentStep with
-            | Result -> 
-                R.fn SearchResult
-                    { selectedId = 1 } []
-            | _ -> 
-                R.com<SearchItemListContainer,_,_> 
-                    { selectedId = this.state.selectedId
-                    ; searchStep = this.state.currentStep 
-                    ; onSelect = this.select } []
         R.div [ClassName "row"] [
             R.div [ClassName "col-md-6 col-md-offset-3"] [
                 R.h1 [] [R.str "Vehicle Search"]
                 R.h4 [] [R.str "Select Brand"]
                 R.div [ClassName "row"] [
                     R.div [ClassName "col-md-4"] [
-                        reactComponent
+                        R.com<SearchItemListContainer,_,_> 
+                            { selectedId = this.state.selectedId
+                            ; searchStep = this.state.currentStep 
+                            ; onSelect = this.select } []
                     ]
                 ]
             ]
