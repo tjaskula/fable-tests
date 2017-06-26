@@ -5,3 +5,12 @@ body {
   padding: 40px 15px;
   text-align: center;
 }
+
+.alert {
+  padding: 10px;
+}
+
+.alert-dismissible,
+.alert-dismissible {
+    padding-right: 35px;
+}

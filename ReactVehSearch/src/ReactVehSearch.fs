@@ -209,7 +209,6 @@ type SearchItemListContainer(props) =
             this.setState({this.state with searchChoices = searchChoices})
 
     member this.render () =
-        //Browser.console.log("In Render of SearchItemListContainer")
         match this.props.searchStep with
         | Result -> 
             R.fn SearchResult { resultList = this.state.resultList } []
@@ -235,16 +234,36 @@ type VehicleSearchApp(props) =
 
     member this.render () =
         
-        R.div [ClassName "row"] [
-            R.div [ClassName "col-md-4 col-md-offset-4"] [
-                R.h1 [] [R.str "Vehicle Search"]
-                R.h4 [] [R.str ("Select " + getSearchStepName this.state.currentSearchStep)]
-                R.div [ClassName "row"] [
-                    R.div [] [
-                        R.com<SearchItemListContainer,_,_> 
-                            { selectedId = this.state.selectedId
-                            ; searchStep = this.state.currentSearchStep 
-                            ; onSelect = this.select } []
+        R.div [] [
+            R.div [ClassName "row"] [
+                R.div [ClassName "col-md-4 col-md-offset-4"] [
+                    R.h1 [] [R.str "Vehicle Search"]
+                    R.h4 [] [R.str ("Select " + getSearchStepName this.state.currentSearchStep)]
+                ]
+            ]
+            R.div [ClassName "row"] [
+                R.div [ClassName "col-md-2 col-md-offset-1"] [
+                    R.div [ClassName "row"] [
+                        R.div [ClassName "alert alert-info alert-dismissible"] [
+                            R.button [
+                                ClassName "close" 
+                                !!("data-dismiss", "alert")
+                                !!("aria-label", "close")] [
+                                    R.span [!!("aria-hidden", "true")] [R.str "×"]
+                                ]
+                            R.str "Volkswagen"
+                        ]
+                    ]
+                ]
+                R.div [ClassName "col-md-1"][]
+                R.div [ClassName "col-md-4"] [
+                    R.div [ClassName "row"] [
+                        R.div [] [
+                            R.com<SearchItemListContainer,_,_> 
+                                { selectedId = this.state.selectedId
+                                ; searchStep = this.state.currentSearchStep 
+                                ; onSelect = this.select } []
+                        ]
                     ]
                 ]
             ]
