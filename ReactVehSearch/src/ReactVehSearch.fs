@@ -48,7 +48,7 @@ let datas = [ { id = 1; label = "Renault"; parentId = 0; category = "Make" }
             ; { id = 20; label = "Sémi-automatique"; parentId = 16; category = "Transmission" }
             ; { id = 21; label = "Manuelle"; parentId = 17; category = "Transmission" }
             ; { id = 22; label = "Automatique"; parentId = 17; category = "Transmission" }
-            ; { id = 23; label = "Bérline"; parentId = 22; category = "Body" }
+            ; { id = 23; label = "Berline"; parentId = 22; category = "Body" }
             ; { id = 24; label = "Break"; parentId = 22; category = "Body" }
             ; { id = 25; label = "14"; parentId = 24; category = "FiscalPower" }
             ; { id = 26; label = "7"; parentId = 24; category = "FiscalPower" }
@@ -82,6 +82,16 @@ let getNextSearchStep currentSearchStep =
     | FiscalPower -> Result
     | Result -> Result
 
+let getSearchStepName currentSearchStep =
+    match currentSearchStep with
+    | Make -> "Make"
+    | Model -> "Model"
+    | Fuel -> "Fuel"
+    | Transmission -> "Transmission"
+    | Body -> "Body"
+    | FiscalPower -> "Fiscal Power"
+    | Result -> "Vehicle list"
+
 [<PassGenericsAttribute>]
 let getData category selectedId =
     let toString (x:'a) = 
@@ -105,7 +115,6 @@ type SearchModel(key) =
         this.onChanges |> Seq.iter (fun cb -> cb())
 
     member this.select(selectedItem) =
-        // Browser.console.log(selectedItem)
         this.search <- { this.search with selectedChoices =  selectedItem :: this.search.selectedChoices }
         this.inform()
 
@@ -151,36 +160,25 @@ type SearchItem(props) =
     do base.setInitState({ isSelected = false })
 
     member this.render () =
-        // Browser.console.log("In Render of SearchItem")
         R.a [
             ClassName "list-group-item"
             !!("data-id", this.props.selectionItem.id |> string)
             OnClick (fun e -> this.props.onSelect(upcast e)) ] [R.str this.props.selectionItem.label]
 
 // component
-
 type [<Pojo>] SearchItemListProps =
     { searchChoices: VehicleItem list
     ; onSelect: VehicleItem->unit }
 
-type [<Pojo>] SearchItemListState =
-    { isSelected: bool }
-
-type SearchItemList(props) =
-    inherit React.Component<SearchItemListProps, SearchItemListState>(props)
-    do base.setInitState({ isSelected = false })
-
-    member this.render () =
-        // Browser.console.log("In Render of SearchItemList")
-        let searchChoices = this.props.searchChoices
-        let brandItems =
-            searchChoices
-            |> Seq.map(fun choice ->
-                R.com<SearchItem,_,_>
-                    { selectionItem = choice
-                    ; onSelect = fun _ -> this.props.onSelect(choice) } [])
-            |> Seq.toList
-        R.div [ClassName "list-group"] brandItems |> Some
+let SearchItemList(props: SearchItemListProps) =
+    let brandItems =
+        props.searchChoices
+        |> Seq.map(fun choice ->
+            R.com<SearchItem,_,_>
+                { selectionItem = choice
+                ; onSelect = fun _ -> props.onSelect(choice) } [])
+        |> Seq.toList
+    R.div [ClassName "list-group"] brandItems 
 
 // component
 type [<Pojo>] SearchItemListContainerProps =
@@ -197,15 +195,12 @@ type SearchItemListContainer(props) =
     do base.setInitState({ searchChoices = []; resultList = [] })
 
     member this.componentDidMount () =
-        //Browser.console.log("In componentDidMount of SearchItemListContainer")
         // this could be an ajax call (this is called only once)
         let searchChoices = getData this.props.searchStep this.props.selectedId
         this.setState({this.state with searchChoices = searchChoices})
 
     member this.componentWillReceiveProps(nextProps) =
-        //Browser.console.log("In componentWillReceiveProps of SearchItemListContainer")
-        //Browser.console.log(JS.JSON.stringify nextProps)
-        // this could be an ajax call (this is called only once)
+        // this could be an ajax call
         match nextProps.searchStep with
         | Result -> 
             this.setState({this.state with resultList = results})
@@ -218,36 +213,37 @@ type SearchItemListContainer(props) =
         match this.props.searchStep with
         | Result -> 
             R.fn SearchResult { resultList = this.state.resultList } []
-        | _ -> R.com<SearchItemList,_,_> { searchChoices = this.state.searchChoices; onSelect = this.props.onSelect } []
+        | _ -> R.fn SearchItemList { searchChoices = this.state.searchChoices; onSelect = this.props.onSelect } []
 
 // Vehicle Search view app
 type [<Pojo>] VehicleSearchAppProps =
     { model: SearchModel }
 
 type [<Pojo>] VehicleSearchAppState =
-    { currentStep: SearchStep
+    { currentSearchStep: SearchStep
+    ; nextSearchStep: SearchStep
     ; selectedId: int
     ; searching: Guid option }
 
 type VehicleSearchApp(props) =
     inherit React.Component<VehicleSearchAppProps, VehicleSearchAppState>(props)
-    do base.setInitState({ currentStep = Make; selectedId = 0; searching = System.Guid.NewGuid() |> Some })
+    do base.setInitState({ currentSearchStep = Make; nextSearchStep = getNextSearchStep Make; selectedId = 0; searching = System.Guid.NewGuid() |> Some })
 
     member this.select (selectedItem) =
         this.props.model.select(selectedItem)
-        this.setState({ this.state with currentStep = getNextSearchStep this.state.currentStep; selectedId = selectedItem.id })
+        this.setState({ this.state with currentSearchStep = this.state.nextSearchStep; nextSearchStep = getNextSearchStep this.state.nextSearchStep; selectedId = selectedItem.id })
 
     member this.render () =
-        //Browser.console.log("In Render of App")
+        
         R.div [ClassName "row"] [
-            R.div [ClassName "col-md-6 col-md-offset-3"] [
+            R.div [ClassName "col-md-4 col-md-offset-4"] [
                 R.h1 [] [R.str "Vehicle Search"]
-                R.h4 [] [R.str "Select Brand"]
+                R.h4 [] [R.str ("Select " + getSearchStepName this.state.currentSearchStep)]
                 R.div [ClassName "row"] [
-                    R.div [ClassName "col-md-4"] [
+                    R.div [] [
                         R.com<SearchItemListContainer,_,_> 
                             { selectedId = this.state.selectedId
-                            ; searchStep = this.state.currentStep 
+                            ; searchStep = this.state.currentSearchStep 
                             ; onSelect = this.select } []
                     ]
                 ]
