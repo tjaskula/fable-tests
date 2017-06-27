@@ -70,7 +70,7 @@ type SearchStep =
 | FiscalPower
 | Result
 
-type Search = { id: Guid; lastChoice: SearchStep option; selectedChoices: VehicleItem list; showResults: bool }
+type Search = { id: Guid; lastChoice: SearchStep option; selectedChoices: VehicleItem array; showResults: bool }
 
 let getNextSearchStep currentSearchStep =
     match currentSearchStep with
@@ -104,7 +104,7 @@ let getData category selectedId =
 
 type SearchModel(key) =
     member val key = key
-    member val search: Search = defaultArg (Util.load key) {id = System.Guid.NewGuid(); lastChoice = None; selectedChoices = []; showResults = false } with get, set
+    member val search: Search = defaultArg (Util.load key) {id = System.Guid.NewGuid(); lastChoice = None; selectedChoices = [||]; showResults = false } with get, set
     member val onChanges: (unit->unit)[] = [||] with get, set
 
     member this.subscribe(onChange) =
@@ -115,7 +115,7 @@ type SearchModel(key) =
         this.onChanges |> Seq.iter (fun cb -> cb())
 
     member this.select(selectedItem) =
-        this.search <- { this.search with selectedChoices =  selectedItem :: this.search.selectedChoices }
+        this.search <- { this.search with selectedChoices =  (Array.append this.search.selectedChoices [|selectedItem|]) }
         this.inform()
 
 
@@ -214,6 +214,42 @@ type SearchItemListContainer(props) =
             R.fn SearchResult { resultList = this.state.resultList } []
         | _ -> R.fn SearchItemList { searchChoices = this.state.searchChoices; onSelect = this.props.onSelect } []
 
+type [<Pojo>] Lab = {label: string}
+type [<Pojo>] LabS = {label: string}
+type ItemDeMerde(props) =
+    inherit React.Component<Lab, LabS>(props)
+    do base.setInitState({ label = "" })
+    member this.render() =
+        R.div [ClassName "row"] [
+            R.div [ClassName "alert alert-info alert-dismissible"] [
+                R.button [
+                    ClassName "close" 
+                    !!("data-dismiss", "alert")
+                    !!("aria-label", "close")] [
+                        R.span [!!("aria-hidden", "true")] [R.str "×"]
+                    ]
+                R.str props.label
+            ]
+        ]
+
+type [<Pojo>] SelectedItemsProps =
+    { selectedElements: VehicleItem list }
+ 
+type [<Pojo>] SelectedItemsState =
+    { selectedElements: VehicleItem list }
+
+type SelectedItems(props) =
+    inherit React.Component<SelectedItemsProps, SelectedItemsState>(props)
+    do base.setInitState({ selectedElements = [] })
+
+    member this.render() =
+        let reactElements =
+            this.props.selectedElements
+            |> Seq.map (fun e -> R.com<ItemDeMerde,_,_> { label = e.label } [])
+            |> Seq.toList
+            
+        R.div [ClassName "col-md-2 col-md-offset-1"] reactElements
+
 // Vehicle Search view app
 type [<Pojo>] VehicleSearchAppProps =
     { model: SearchModel }
@@ -242,19 +278,7 @@ type VehicleSearchApp(props) =
                 ]
             ]
             R.div [ClassName "row"] [
-                R.div [ClassName "col-md-2 col-md-offset-1"] [
-                    R.div [ClassName "row"] [
-                        R.div [ClassName "alert alert-info alert-dismissible"] [
-                            R.button [
-                                ClassName "close" 
-                                !!("data-dismiss", "alert")
-                                !!("aria-label", "close")] [
-                                    R.span [!!("aria-hidden", "true")] [R.str "×"]
-                                ]
-                            R.str "Volkswagen"
-                        ]
-                    ]
-                ]
+                R.com<SelectedItems,_,_> { selectedElements = this.props.model.search.selectedChoices |> List.ofArray  } []
                 R.div [ClassName "col-md-1"][]
                 R.div [ClassName "col-md-4"] [
                     R.div [ClassName "row"] [
